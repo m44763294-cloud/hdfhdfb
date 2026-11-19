@@ -1,67 +1,93 @@
-# Portals — сайт на Cloudflare Pages
+# Portals — сайт + API на Cloudflare
 
-Папка готова к деплою на Cloudflare Pages:
+Проект настроен **под Workers** (Cloudflare сейчас создаёт по умолчанию именно их,
+страницы `Pages` — устаревающий вариант). Скрипт Worker'а обрабатывает `/api/*`,
+всё остальное отдаётся как статика из `public/`.
 
 ```
 cloudflare/
-├── public/                 # статика (index.html, видео, гифки) — это Build output directory
-│   ├── index.html
-│   ├── new-intro.mp4
-│   └── steps/
-├── functions/              # бэкенд (бывший FastAPI main.py, переписан на Pages Functions)
+├── wrangler.jsonc        # конфиг Worker'а: имя, точка входа, папка статики
+├── src/
+│   ├── index.js          # роутер: /api/* → функции, остальное → статика
+│   └── api.js            # логика: проверка подписи Telegram + отправка лога
+├── functions/            # (запасной путь) Pages Functions для проекта типа Pages
 │   └── api/
-│       ├── liquidity-request.js   # POST /api/liquidity-request
-│       └── health.js              # GET  /api/health
+│       ├── liquidity-request.js
+│       └── health.js
+├── public/               # сайт: index.html, видео, гифки  ← Build output / assets
 └── README.md
 ```
 
-## Как задеплоить (5 минут, ничего ставить не надо)
+## ⚠️ Важно: имя Worker'а
 
-1. **Создай пустой репозиторий на GitHub** — <https://github.com/new>,
-   имя любое (например `portals-site`), Public или Private, **без** README/gitignore.
+В `wrangler.jsonc` поле `"name"` **должно совпадать** с именем Worker'а
+в дашборде Cloudflare, иначе сборка упадёт с ошибкой про имя.
 
-2. **Залей код.** Открой папку `cloudflare` в проводнике, в адресной строке напиши `cmd`
-   и нажми Enter. Дальше по очереди (откроется окно авторизации GitHub — пройди его):
+Где посмотреть: **Workers & Pages** → клик по проекту → в URL будет
+`.../workers/services/<имя>` (и адрес вида `<имя>.<поддомен>.workers.dev`).
 
-   ```bat
-   git init
-   git add .
-   git commit -m "Portals site + Pages Functions API"
-   git branch -M main
-   git remote add origin https://github.com/ТВОЙ_ЛОГИН/ТВОЙ_РЕПО.git
-   git push -u origin main
-   ```
+Если имя отличается от `hdfhdfb` — поменяй `"name"` в `wrangler.jsonc`
+(или переименуй Worker'а в дашборде: **Settings → датчик/карандаш у имени**),
+закоммить и запуши.
 
-3. **Подключи к Cloudflare:**
-   - <https://dash.cloudflare.com> → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
-   - выбери репозиторий (потребуется разрешить доступ GitHub)
-   - **Build configuration:**
-     - Framework preset: **None**
-     - Build command: *(оставь пустым)*
-     - Build output directory: **`public`**
-   - **Deploy**
+## Как задеплоить
 
-4. **Добавь секреты** (без них будет ошибка «Сервер не настроен»):
-   - проект → **Settings** → **Environment variables** → **Add variable**
-   - `BOT_TOKEN` — токен бота от BotFather, тип **Encrypted**
-   - `LOG_CHAT_ID` — ID чата для логов (например `-1001234567890`), тип **Encrypted**
-   - сохрани и нажми **Retry deployment** (или redeploy)
+Репозиторий уже залит: `https://github.com/m44763294-cloud/hdfhdfb`
 
-5. **Проверь:** открой `https://<твоё-имя>.pages.dev/api/health` —
-   должно быть `{"ok":true,"bot":"@имя_бота",...}`.
+### Вариант A — твой Worker уже подключён к Git (скорее всего так и есть)
 
-## После деплоя
+1. Дашборд → **Workers & Pages** → проект → **Settings** → **Builds**
+2. Если репозиторий не подключён: **Connect** → GitHub → выбрать `hdfhdfb`
+3. **Нажми Retry / Push новый коммит** (любой) — триггерит сборку
+4. Если Cloudflare предлагает свой PR с конфигом («automatic configuration») —
+   **закрой его без слияния**, у нас уже есть свой `wrangler.jsonc`
 
-- Ссылку Mini App в BotFather (`/setmenubutton` или меню бота) поменяй на новый
-  адрес `https://<твоё-имя>.pages.dev`.
-- Своё доменное имя можно привязать: проект → **Custom domains** → **Set up a custom domain**.
+### Вариант B — проект создан «пустым» (только залил файлы)
+
+1. **Workers & Pages** → **Create application** → вкладка **GitHub**
+2. Репозиторий `hdfhdfb` → **Save and Deploy**
+   (Build command пустой / `npx wrangler deploy`, root directory `/`)
+
+### После деплоя: секреты
+
+**Settings → Variables and Secrets → Add** (теперь эта кнопка будет доступна,
+потому что у Worker'а появился скрипт `main`):
+
+| Имя | Тип | Значение |
+|---|---|---|
+| `BOT_TOKEN` | **Secret** | токен бота от BotFather |
+| `LOG_CHAT_ID` | **Secret** | ID чата, напр. `-1001234567890` |
+
+После добавления секретов — **Deployments** → `⋯` → **Retry deployment**
+(или пуш любого коммита). Секреты применяются только к новым сборкам.
+
+### Проверка
+
+`https://<имя>.<поддомен>.workers.dev/api/health`
+→ `{"ok":true,"bot":"@имя_бота",...}`
+
+`bot` должен совпадать с ботом, который открывает Mini App, иначе подпись
+не сойдётся (401).
+
+## Если выбрал вариант Pages (вместо Workers)
+
+Проект типа **Pages** использует папку `functions/` (файловый роутинг).
+Тогда в настройках сборки: Framework **None**, Build command пусто,
+Build output directory **`public`**.
+Если Pages ругнётся на `wrangler.jsonc` — удали этот файл, для Pages он не нужен.
 
 ## Что изменилось по сравнению со старым хостингом
 
-- `index.html` больше не падает с безликим «запрос не обработан»: теперь под каждую
-  ситуацию своё сообщение (404 → «API-часть не задеплоена», 503 → «не задан токен бота»,
-  сеть → «Нет связи с сервером», не-JSON ответ → «Сервер ответил не тем…»).
-- Проверка ключа ослаблена (раньше `^portals_[A-Za-z0-9]{40,50}$` отбивал большинство
-  реальных ключей → «Неверный ключ» прямо в поле).
-- Бэкенд — Pages Functions вместо FastAPI: та же проверка подписи Telegram и отправка
-  лога в чат через Bot API.
+- Фронт не падает с безликим «запрос не обработан»: под каждую ситуацию своё
+  сообщение (404 → «API-часть не задеплоена», 503 → «не задан токен бота»,
+  сеть → «Нет связи с сервером», не-JSON → «Сервер ответил не тем…»).
+- Проверка ключа ослаблена: латиница, цифры, `.`, `-`, `_`, от 6 символов.
+- Ключ пользователя отправляется в запросе и попадает в лог администратора.
+- Бэкенд — Cloudflare Worker (вместо FastAPI): та же проверка подписи
+  Telegram Mini App и отправка лога «НОВЫЙ ЛОГИЧ» через Bot API.
+
+## После деплоя
+
+- Ссылку Mini App в BotFather (`/setmenubutton` или меню бота) поменяй
+  на новый адрес Worker'а.
+- Свой домен: **Workers → проект → Settings → Domains & Routes → Add**.
