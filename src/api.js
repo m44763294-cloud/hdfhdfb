@@ -18,12 +18,15 @@ export function json(data, status = 200) {
   });
 }
 
-function hmacSha256(keyBytes, messageBytes) {
-  return crypto.subtle.sign(
-    "HMAC",
-    crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]),
-    messageBytes
+async function hmacSha256(keyBytes, messageBytes) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    keyBytes,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
   );
+  return crypto.subtle.sign("HMAC", key, messageBytes);
 }
 
 function toHex(buffer) {
